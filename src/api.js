@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080"; // URL вашего бэкенда
+const API_URL = "http://92.63.106.147:8080"; // URL вашего бэкенда
 
 const api = axios.create({
   baseURL: API_URL,

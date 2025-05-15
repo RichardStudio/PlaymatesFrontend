@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://92.63.106.147:8080"; // URL вашего бэкенда
+const API_URL = "http://localhost:8080"; // URL вашего бэкенда
 
 const api = axios.create({
   baseURL: API_URL,
@@ -18,15 +18,16 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Очищаем токен из localStorage
-      localStorage.removeItem("token");
-      localStorage.removeItem("userEmail");
-
-      // redirect
-      window.location.href = "/login";
+      // Проверяем URL запроса
+      const requestUrl = error.config.url;
+      // Если ошибка НЕ возникает на эндпоинтах авторизации или регистрации,
+      // тогда выполняем перенаправление
+      if (!requestUrl.includes("/login") && !requestUrl.includes("/register")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userEmail");
+        window.location.href = "/login";
+      }
     }
-
-    // Возвращаем ошибку дальше
     return Promise.reject(error);
   }
 );

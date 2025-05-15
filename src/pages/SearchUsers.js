@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { searchUsers } from "../api"; // Импортируем функцию searchUsers
+import { searchUsers } from "../api"; // Импортируем функцию поиска пользователей
 import { TextField, Select, MenuItem, Button, List, ListItem, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
-
 
 const SearchUsers = () => {
   const [filters, setFilters] = useState({
@@ -19,10 +18,10 @@ const SearchUsers = () => {
   // Функция для выполнения поиска
   const handleSearch = async (page = 1) => {
     try {
-      const data = await searchUsers(filters, page, limit); // Выполняем запрос для указанной страницы
+      const data = await searchUsers(filters, page, limit); // Запрос на поиск пользователей
       setUsers(data.users);
       setTotal(data.total);
-      setCurrentPage(page); // Устанавливаем текущую страницу
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -44,6 +43,20 @@ const SearchUsers = () => {
     if (currentPage > 1) {
       handleSearch(currentPage - 1); // Переключаемся на предыдущую страницу
     }
+  };
+
+  // Функция обработки ввода игр
+  const handleGamesChange = (e) => {
+    let value = e.target.value;
+
+    // Убираем лишние пробелы, нормализуем формат
+    value = value
+      .split(",") // Разбиваем строку по запятой
+      .map(game => game.trim()) // Убираем лишние пробелы вокруг каждого элемента
+      .filter(game => game.length > 0) // Исключаем пустые значения
+      .join(","); // Склеиваем обратно с правильным разделителем ", "
+
+    setFilters({ ...filters, games: value });
   };
 
   return (
@@ -70,7 +83,8 @@ const SearchUsers = () => {
           type="text"
           label="Games (comma-separated)"
           value={filters.games}
-          onChange={(e) => setFilters({ ...filters, games: e.target.value })}
+          onChange={(e) => setFilters({ ...filters, games: e.target.value })} // Теперь можно вводить запятую
+          onBlur={handleGamesChange} // Форматирование запускается только после потери фокуса
           variant="outlined"
           size="small"
         />
@@ -83,8 +97,8 @@ const SearchUsers = () => {
           displayEmpty
         >
           <MenuItem value="">Any Gender</MenuItem>
-          <MenuItem value="male">Male</MenuItem>
-          <MenuItem value="female">Female</MenuItem>
+          <MenuItem value="Male">Male</MenuItem>
+          <MenuItem value="Female">Female</MenuItem>
         </Select>
         <Button variant="contained" color="primary" onClick={() => handleSearch(1)}>
           Search

@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { Typography, Box, Paper, Button } from "@mui/material";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getUserProfile } from "../api";
 
 const UserProfileView = () => {
-  const { id } = useParams(); // Получаем ID пользователя из URL
+  const { id } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Получаем ID текущего пользователя из localStorage
+  const storedUser = localStorage.getItem("user");
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const currentUserId = currentUser?.id;
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await getUserProfile(id); // Запрос к API для получения профиля
+        const data = await getUserProfile(id);
         setProfile(data);
+        setLoading(false);
       } catch (err) {
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
   }, [id]);
+
+  // После загрузки данных проверяем, принадлежит ли профиль текущему пользователю
+  useEffect(() => {
+    if (!loading && profile && currentUserId && Number(id) === currentUserId) {
+      navigate("/profile");
+    }
+  }, [profile, currentUserId, id, loading, navigate]);
 
   if (loading) {
     return <div>Loading profile data...</div>;
@@ -68,12 +79,11 @@ const UserProfileView = () => {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => navigate(`/chat/${id}`)} // Перенаправляем на чат с пользователем
+          onClick={() => navigate(`/chat/${id}`)}
           sx={{ marginTop: "20px" }}
         >
-          Написать
+          Write a Message
         </Button>
-
       </Paper>
     </Box>
   );

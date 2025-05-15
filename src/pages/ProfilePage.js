@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { TextField, Button, Typography } from "@mui/material";
+import { TextField, Button, Typography, MenuItem, Select, FormHelperText } from "@mui/material";
 import { getProfile, updateProfile } from "../api";
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState({
-    age: 0,
+    age: "",
     gender: "",
-    games: [],
+    games: "",
     about_me: "",
   });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const data = await getProfile();
-        setProfile(data);
+        setProfile({
+          age: data.age.toString(),
+          gender: data.gender,
+          games: data.games.join(", "),
+          about_me: data.about_me,
+        });
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        console.error("Error fetching profile:", error.message);
       }
     };
 
@@ -25,26 +32,56 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === "age"){
-        setProfile((prev) => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
+    
+    if (name === "age") {
+      if (/^\d*$/.test(value)) {
+        setProfile((prev) => ({ ...prev, age: value }));
+      }
     } else {
-        setProfile((prev) => ({ ...prev, [name]: value }));
+      setProfile((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleGamesChange = (e) => {
-    const games = e.target.value.split(",").map((game) => game.trim());
-    setProfile((prev) => ({ ...prev, games }));
-  };
+const handleGamesChange = (e) => {
+  const value = e.target.value;
+  setProfile((prev) => ({ ...prev, games: value }));
+
+  // Разрешаем любые символы, но запятая должна быть с пробелом после неё
+  if (!/^([^,]+)(, [^,]+)*$/.test(value)) {
+    setErrors((prev) => ({ ...prev, games: "Games must be separated by commas followed by a space." }));
+  } else {
+    setErrors((prev) => ({ ...prev, games: "" }));
+  }
+};
 
   const handleSubmit = async () => {
-    try {
-      await updateProfile(profile);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      alert(`Error: ${error.message}`);
-    }
-  };
+  const newErrors = {};
+
+  if (!profile.age || isNaN(Number(profile.age))) {
+    newErrors.age = "Age must be a valid number.";
+  }
+  if (!profile.gender) {
+    newErrors.gender = "Please select a gender.";
+  }
+  if (!profile.games.match(/^([^,]+)(, [^,]+)*$/)) {  
+    newErrors.games = "Games must be separated by commas followed by a space.";
+  }
+
+  setErrors(newErrors);
+  if (Object.keys(newErrors).length > 0) return;
+
+  try {
+    await updateProfile({
+      age: Number(profile.age),
+      gender: profile.gender,
+      games: profile.games.split(", "),
+      about_me: profile.about_me,
+    });
+    alert("Profile updated successfully!");
+  } catch (error) {
+    console.error("Error updating profile:", error.message);
+  }
+};
 
   return (
     <div>
@@ -52,31 +89,47 @@ const ProfilePage = () => {
         My Profile
       </Typography>
 
+      {/* Age */}
       <TextField
         fullWidth
         name="age"
         label="Age"
-        type="number"
+        type="text"
         value={profile.age}
         onChange={handleChange}
         margin="normal"
+        error={Boolean(errors.age)}
+        helperText={errors.age}
       />
-      <TextField
+
+      {/* Gender */}
+      <Select
         fullWidth
         name="gender"
-        label="Gender"
         value={profile.gender}
         onChange={handleChange}
-        margin="normal"
-      />
+        displayEmpty
+      >
+        <MenuItem value="">Select Gender</MenuItem>
+        <MenuItem value="Male">Male</MenuItem>
+        <MenuItem value="Female">Female</MenuItem>
+        <MenuItem value="Not specified">Not specified</MenuItem>
+      </Select>
+      {errors.gender && <FormHelperText error>{errors.gender}</FormHelperText>}
+
+      {/* Games */}
       <TextField
         fullWidth
         name="games"
         label="Games (comma-separated)"
-        value={profile.games.join(", ")}
+        value={profile.games}
         onChange={handleGamesChange}
         margin="normal"
+        error={Boolean(errors.games)}
+        helperText={errors.games}
       />
+
+      {/* About Me */}
       <TextField
         fullWidth
         name="about_me"
@@ -88,7 +141,8 @@ const ProfilePage = () => {
         margin="normal"
       />
 
-      <Button variant="contained" color="primary" onClick={handleSubmit}>
+      {/* Save Button */}
+      <Button variant="contained" color="primary" onClick={handleSubmit} sx={{ mt: 2 }}>
         Save Changes
       </Button>
     </div>
